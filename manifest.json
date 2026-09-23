@@ -6,7 +6,12 @@
     "description": "Clears browser data for the current site only.",
     "author": "Nicolas Barraud",
 
-    "permissions": [ "browsingData", "activeTab", "storage" ],
+      "permissions": [
+    "browsingData",
+    "tabs",
+    "activeTab",
+    "scripting"
+  ],
 
     "options_ui":
     {
