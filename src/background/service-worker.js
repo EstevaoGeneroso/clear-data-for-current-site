@@ -10,6 +10,34 @@ function sendStatus(port, message) {
     }
 }
 
+// Esta função será injetada e executada diretamente dentro da página do Maestra
+function selecionarPortuguesNoMaestra() {
+    const interval = setInterval(() => {
+        const seletores = Array.from(document.querySelectorAll('button, div, span'));
+        const botaoIdioma = seletores.find(el => 
+            el.textContent.includes("Detect Language") || 
+            el.textContent.includes("Language") ||
+            el.textContent.includes("Spanish")
+        );
+
+        if (botaoIdioma) {
+            botaoIdioma.click(); // Abre o menu de idiomas
+
+            setTimeout(() => {
+                const opcoes = Array.from(document.querySelectorAll('li, button, div, span'));
+                const opcaoPortugues = opcoes.find(el => el.textContent.trim() === "Portuguese");
+
+                if (opcaoPortugues) {
+                    opcaoPortugues.click(); // Seleciona o Português
+                    clearInterval(interval);
+                }
+            }, 300);
+        }
+    }, 500);
+
+    setTimeout(() => clearInterval(interval), 10000); // Segurança de 10s
+}
+
 async function clearBrowsingData(port, tab) {
     try {
         if (!Number.isInteger(tab?.id) || !tab.url) {
@@ -64,6 +92,21 @@ async function clearBrowsingData(port, tab) {
         sendStatus(port, {
             state: "step-active",
             step: "reload"
+        });
+
+        // Configura o ouvinte ANTES de recarregar a página para capturar o momento exato do carregamento
+        chrome.tabs.onUpdated.addListener(function listenReload(tabId, changeInfo) {
+            if (tabId === tab.id && changeInfo.status === 'complete') {
+                chrome.tabs.onUpdated.removeListener(listenReload);
+
+                // Dispara o injetor automático se o domínio for o Maestra
+                if (url.hostname.includes("maestra.ai")) {
+                    chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        func: selecionarPortuguesNoMaestra
+                    }).catch(err => console.error("Erro ao injetar script:", err));
+                }
+            }
         });
 
         await chrome.tabs.reload(tab.id);
